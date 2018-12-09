@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
+	"path"
 	"syscall"
 )
 
@@ -41,17 +43,36 @@ func run(command string, opts []string) {
 	fmt.Printf("Running command %s as PID %d\n", command, os.Getpid())
 	cmd := exec.Command(command, opts...)
 	bindCmdStdio(cmd)
+
+	volumeDir := genContainerDir()
+	fmt.Println(volumeDir)
+	must(syscall.Chroot(volumeDir))
+	must(os.Chdir("/"))
+	must(syscall.Mount("proc", "proc", "proc", 0, ""))
 	must(cmd.Run())
 }
 
-func bindCmdStdio(cmd *exec.Cmd) {
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-}
-
-func must(err error) {
+func genContainerDir() string {
+	pwd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		log.Panicf("Cannot get current dir. ERR: %v\n", err)
 	}
+
+	containerDir := path.Join(pwd, "container")
+
+	volumeDir := path.Join(containerDir, randString(10))
+	for {
+		_, err := os.Stat(volumeDir)
+		if err != nil && os.IsNotExist(err) {
+			break
+		}
+		volumeDir = path.Join(pwd, "container", randString(10))
+	}
+
+	err = os.MkdirAll(volumeDir, os.ModePerm)
+	if err != nil {
+		log.Panicf("Cannot create volume dir. ERR: %v\n", err)
+	}
+
+	return volumeDir
 }
