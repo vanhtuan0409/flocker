@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 )
 
 func main() {
@@ -19,8 +20,11 @@ func main() {
 
 func run(command string, opts []string) {
 	cmd := exec.Command(command, opts...)
-
 	bindCmdStdio(cmd)
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Cloneflags: syscall.CLONE_NEWUTS,
+	}
 	must(cmd.Run())
 }
 
