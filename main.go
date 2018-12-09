@@ -45,7 +45,7 @@ func run(command string, opts []string) {
 	bindCmdStdio(cmd)
 
 	volumeDir := genContainerDir()
-	fmt.Println(volumeDir)
+	fmt.Printf("Container file system is: %s\n", volumeDir)
 	must(syscall.Chroot(volumeDir))
 	must(os.Chdir("/"))
 	must(syscall.Mount("proc", "proc", "proc", 0, ""))
